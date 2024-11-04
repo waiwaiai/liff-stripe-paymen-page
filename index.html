@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレミアムプラン - お申し込み</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            color: #333;
+            margin: 0 0 8px 0;
+            font-size: 24px;
+        }
+        .header p {
+            color: #666;
+            margin: 0;
+        }
+        .price-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+        .price span {
+            font-size: 16px;
+            font-weight: normal;
+        }
+        .features {
+            margin-bottom: 24px;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .check-icon {
+            color: #00B900;
+            margin-right: 8px;
+        }
+        .button {
+            background: #00B900;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 16px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 8px;
+        }
+        .error {
+            display: none;
+            color: red;
+            text-align: center;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>プレミアムプラン</h1>
+            <p>より多くの機能をご利用いただけます</p>
+        </div>
+
+        <div class="price-box">
+            <div class="price">
+                ¥980 <span>/月</span>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <span class="check-icon">✓</span>
+                無制限のメッセージ
+            </div>
+            <div class="feature-item">
+                <span class="check-icon">✓</span>
+                優先サポート
+            </div>
+            <div class="feature-item">
+                <span class="check-icon">✓</span>
+                高度な機能の利用
+            </div>
+        </div>
+
+        <button id="paymentButton" class="button">支払いに進む</button>
+        <div id="loading" class="loading">処理中...</div>
+        <div id="error" class="error">エラーが発生しました</div>
+    </div>
+
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <script>
+        // LIFFの初期化
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: "your-liff-id" });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+                const profile = await liff.getProfile();
+                // ユーザーIDを取得できたら支払いボタンを有効化
+                document.getElementById('paymentButton').disabled = false;
+                return profile.userId;
+            } catch (error) {
+                console.error('LIFF initialization failed', error);
+                showError('LINEログインに失敗しました');
+            }
+        }
+
+        // 支払い処理
+        async function handlePayment(userId) {
+            const button = document.getElementById('paymentButton');
+            const loading = document.getElementById('loading');
+            
+            try {
+                button.disabled = true;
+                loading.style.display = 'block';
+
+                const response = await fetch('YOUR_GAS_ENDPOINT', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: userId })
+                });
+
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('決済URLの取得に失敗しました');
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showError('決済ページの読み込みに失敗しました');
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        // 初期化
+        let userId = null;
+        window.onload = async () => {
+            const button = document.getElementById('paymentButton');
+            button.disabled = true;  // 初期状態は無効化
+
+            userId = await initializeLiff();
+            
+            button.addEventListener('click', () => {
+                if (userId) {
+                    handlePayment(userId);
+                }
+            });
+        };
+    </script>
+</body>
+</html>
